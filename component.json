@@ -1,0 +1,6 @@
+{
+    "name": "pip-services-couchbase",
+    "registry": "pipdevs",
+    "version": "3.0.3",
+    "build": "0"
+}
