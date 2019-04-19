@@ -1,13 +1,12 @@
 #!/usr/bin/env pwsh
 
 $component = Get-Content -Path "component.json" | ConvertFrom-Json
-$buildImage="$($component.registry)/$($component.name):$($component.version)-build"
-$testImage="$($component.registry)/$($component.name):$($component.version)-test"
+$buildImage="$($component.registry)/$($component.name):$($component.version)-$($env:TRAVIS_BUILD_NUMBER)-build"
+$testImage="$($component.registry)/$($component.name):$($component.version)-$($env:TRAVIS_BUILD_NUMBER)-test"
 
 # Clean up build directories
-if (Test-Path "dist") {
-    Remove-Item -Recurse -Force -Path "dist"
-}
+Get-ChildItem -Path "." -Include "obj" -Recurse | foreach($_) { Remove-Item -Force -Recurse $_.FullName }
+Get-ChildItem -Path "." -Include "node_modules" -Recurse | foreach($_) { Remove-Item -Force -Recurse $_.FullName }
 
 # Remove docker images
 docker rmi $buildImage --force
