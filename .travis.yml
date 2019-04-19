@@ -18,6 +18,7 @@ before_install:
 install:
   - curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
   - curl https://packages.microsoft.com/config/ubuntu/14.04/prod.list | sudo tee /etc/apt/sources.list.d/microsoft.list
+  - wget --spider http://us.archive.ubuntu.com/ubuntu/dists/trusty-backports/main/i18n/Translation-en
   - sudo apt-get update
   - sudo apt-get install -y powershell
   - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
