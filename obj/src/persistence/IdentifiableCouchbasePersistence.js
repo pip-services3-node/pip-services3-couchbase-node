@@ -326,7 +326,7 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         this._bucket.insert(id, newItem, (err, result) => {
             if (!err)
                 this._logger.trace(correlationId, "Created in %s with id = %s", this._bucketName, id);
-            newItem = this.convertToPublic(newItem);
+            newItem = err == null ? this.convertToPublic(newItem) : null;
             callback(err, newItem);
         });
     }
@@ -353,7 +353,7 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
             if (!err)
                 this._logger.trace(correlationId, "Set in %s with id = %s", this._bucketName, id);
             if (callback) {
-                newItem = this.convertToPublic(newItem);
+                newItem = err == null ? this.convertToPublic(newItem) : null;
                 callback(err, newItem);
             }
         });
@@ -378,7 +378,7 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
             if (!err)
                 this._logger.trace(correlationId, "Updated in %s with id = %s", this._bucketName, id);
             if (callback) {
-                newItem = this.convertToPublic(newItem);
+                newItem = err == null ? this.convertToPublic(newItem) : null;
                 callback(err, newItem);
             }
         });
@@ -411,7 +411,7 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
                 if (!err)
                     this._logger.trace(correlationId, "Updated partially in %s with id = %s", this._bucketName, objectId);
                 if (callback) {
-                    newItem = this.convertToPublic(objectValue);
+                    newItem = err == null ? this.convertToPublic(objectValue) : null;
                     callback(err, newItem);
                 }
             });
@@ -439,6 +439,7 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
                 if (!err)
                     this._logger.trace(correlationId, "Deleted from %s with id = %s", this._bucketName, objectId);
                 if (callback) {
+                    oldItem = err == null ? oldItem : null;
                     callback(err, oldItem);
                 }
             });

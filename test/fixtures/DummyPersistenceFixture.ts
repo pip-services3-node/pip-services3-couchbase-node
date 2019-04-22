@@ -23,6 +23,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Create one dummy
                 this._persistence.create(null, this._dummy1, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+
                     dummy1 = result;
                     assert.isNotNull(dummy1);
                     assert.isNotNull(dummy1.id);
@@ -35,6 +37,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Create another dummy
                 this._persistence.create(null, this._dummy2, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+
                     dummy2 = result;
                     assert.isNotNull(dummy2);
                     assert.isNotNull(dummy2.id);
@@ -50,6 +54,8 @@ export class DummyPersistenceFixture {
             },
             (callback) => {
                 this._persistence.getPageByFilter(null, null, null, (err, page) => {
+                    assert.isNull(err);
+
                     assert.isNotNull(page);
                     assert.lengthOf(page.data, 2);
 
@@ -60,6 +66,8 @@ export class DummyPersistenceFixture {
                 // Update the dummy
                 dummy1.content = "Updated Content 1";
                 this._persistence.update(null, dummy1, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+
                     assert.isNotNull(result);
                     assert.equal(dummy1.id, result.id);
                     assert.equal(dummy1.key, result.key);
@@ -76,6 +84,8 @@ export class DummyPersistenceFixture {
                         'content', 'Partially Updated Content 1'
                     ),
                     (err: any, result: Dummy) => {
+                        assert.isNull(err);
+
                         assert.isNotNull(result);
                         assert.equal(dummy1.id, result.id);
                         assert.equal(dummy1.key, result.key);
@@ -88,6 +98,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Get the dummy by Id
                 this._persistence.getOneById(null, dummy1.id, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+
                     // Try to get item
                     assert.isNotNull(result);
                     assert.equal(dummy1.id, result.id);
@@ -100,6 +112,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Delete the dummy
                 this._persistence.deleteById(null, dummy1.id, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+
                     assert.isNotNull(result);
                     assert.equal(dummy1.id, result.id);
                     assert.equal(dummy1.key, result.key);
@@ -111,6 +125,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Get the deleted dummy
                 this._persistence.getOneById(null, dummy1.id, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+
                     // Try to get item
                     assert.isNull(result);
 
@@ -128,6 +144,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Create one dummy
                 this._persistence.create(null, this._dummy1, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+
                     dummy1 = result;
                     assert.isNotNull(dummy1);
                     assert.isNotNull(dummy1.id);
@@ -140,6 +158,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Create another dummy
                 this._persistence.create(null, this._dummy2, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+
                     dummy2 = result;
                     assert.isNotNull(dummy2);
                     assert.isNotNull(dummy2.id);
@@ -156,6 +176,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Read batch
                 this._persistence.getListByIds(null, [dummy1.id, dummy2.id], (err, items) => {
+                    assert.isNull(err);
+
                     assert.isArray(items);
                     assert.lengthOf(items, 2);
 
@@ -172,6 +194,8 @@ export class DummyPersistenceFixture {
             (callback) => {
                 // Read empty batch
                 this._persistence.getListByIds(null, [dummy1.id, dummy2.id], (err, items) => {
+                    assert.isNull(err);
+
                     assert.isArray(items);
                     assert.lengthOf(items, 0);
 

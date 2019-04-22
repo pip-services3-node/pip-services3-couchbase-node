@@ -95,7 +95,7 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
         "options.auto_index", true,
         "options.flush_enabled", true,
         "options.bucket_type", "couchbase",
-        "options.ram_quota", 100
+        "options.ram_quota", 100,
     );
 
     /** 
@@ -232,18 +232,22 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
                     this._cluster.manager().createBucket(this._bucketName, options, (err, result) => {
                         newBucket = err == null;
 
-                        if (err && err.message && err.message.indexOf('name already exist') > 0)
-                            err = null;
+                        if (err && err.message && err.message.indexOf('name already exist') > 0) {
+                            callback();
+                            return;
+                        }
 
                         // Delay to allow couchbase to initialize the bucket
                         // Otherwise opening will fail
-                        setTimeout(() => { callback(err); }, 2000);
-                        //callback(err);
+                        if (err == null)
+                            setTimeout(() => { callback(err); }, 2000);
+                        else callback();
                     });
                 },
                 (callback) => {
                     this._bucket = this._cluster.openBucket(this._bucketName, (err) => {
                         if (err) {
+                            console.error(err);
                             err = new ConnectionException(correlationId, "CONNECT_FAILED", "Connection to couchbase failed").withCause(err);
                             this._bucket = null;
                         } else {

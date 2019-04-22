@@ -10,11 +10,14 @@ services:
       - couchbase
     environment:
       - COUCHBASE_HOST=couchbase
-      - COUCHBASE_PORT=27017
+      - COUCHBASE_PORT=8091
+      - COUCHBASE_USER=Administrator
+      - COUCHBASE_PASS=password
 
   couchbase:
-    image: couchbase:latest
-    # container_name: couchbase
+    image: couchbase/server-sandbox:5.5.1
+    #container_name: couchbase
     # ports:
-    #   - "27017:27017"
+    #   - "8091-8094:8091-8094"
+      # - "11210-11211:11210-11211"
           

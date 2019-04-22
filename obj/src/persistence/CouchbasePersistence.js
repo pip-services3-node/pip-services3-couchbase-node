@@ -185,17 +185,22 @@ class CouchbasePersistence {
                     };
                     this._cluster.manager().createBucket(this._bucketName, options, (err, result) => {
                         newBucket = err == null;
-                        if (err && err.message && err.message.indexOf('name already exist') > 0)
-                            err = null;
+                        if (err && err.message && err.message.indexOf('name already exist') > 0) {
+                            callback();
+                            return;
+                        }
                         // Delay to allow couchbase to initialize the bucket
                         // Otherwise opening will fail
-                        setTimeout(() => { callback(err); }, 2000);
-                        //callback(err);
+                        if (err == null)
+                            setTimeout(() => { callback(err); }, 2000);
+                        else
+                            callback();
                     });
                 },
                 (callback) => {
                     this._bucket = this._cluster.openBucket(this._bucketName, (err) => {
                         if (err) {
+                            console.error(err);
                             err = new pip_services3_commons_node_2.ConnectionException(correlationId, "CONNECT_FAILED", "Connection to couchbase failed").withCause(err);
                             this._bucket = null;
                         }
