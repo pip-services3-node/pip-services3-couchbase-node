@@ -165,7 +165,9 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
             }
             if (items != null)
                 this._logger.trace(correlationId, "Retrieved %d from %s", items.length, this._bucketName);
+            items = _.map(items, item => item[this._bucketName]);
             items = _.map(items, this.convertToPublic);
+            items = _.filter(items, item => item != null);
             if (pagingEnabled) {
                 statement = "SELECT COUNT(*) FROM default";
                 if (filter && !_.isEmpty(filter))
@@ -218,7 +220,9 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
             }
             if (items != null)
                 this._logger.trace(correlationId, "Retrieved %d from %s", items.length, this._bucketName);
+            items = _.map(items, item => item[this._bucketName]);
             items = _.map(items, this.convertToPublic);
+            items = _.filter(items, item => item != null);
             callback(null, items);
         });
     }
