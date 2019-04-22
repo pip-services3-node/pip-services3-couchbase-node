@@ -156,6 +156,8 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         if (sort && !_.isEmpty(sort))
             statement += " ORDER BY " + sort;
         let query = this._query.fromString(statement);
+        // Todo: Make it configurable?
+        query.consistency(this._query.Consistency.REQUEST_PLUS);
         this._bucket.query(query, [], (err, items) => {
             if (err) {
                 callback(err, null);
@@ -207,6 +209,8 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         if (sort && !_.isEmpty(sort))
             statement += " ORDER BY " + sort;
         let query = this._query.fromString(statement);
+        // Todo: Make it configurable?
+        query.consistency(this._query.Consistency.REQUEST_PLUS);
         this._bucket.query(query, [], (err, items) => {
             if (err) {
                 callback(err, null);
@@ -285,6 +289,8 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         if (filter && !_.isEmpty(filter))
             statement += " WHERE " + filter;
         let query = this._query.fromString(statement);
+        // Todo: Make it configurable?
+        query.consistency(this._query.Consistency.REQUEST_PLUS);
         this._bucket.query(query, [], (err, counts) => {
             let count = counts != null ? counts[0] : 0;
             if (err || count == 0) {

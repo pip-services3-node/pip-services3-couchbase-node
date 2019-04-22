@@ -49,10 +49,6 @@ export class DummyPersistenceFixture {
                 });
             },
             (callback) => {
-                // Timeout to save the documents
-                setTimeout(callback, 6000);
-            },
-            (callback) => {
                 this._persistence.getPageByFilter(null, null, null, (err, page) => {
                     assert.isNull(err);
 
@@ -168,10 +164,6 @@ export class DummyPersistenceFixture {
 
                     callback(err);
                 });
-            },
-            (callback) => {
-                // Timeout to save the documents
-                setTimeout(callback, 5000);
             },
             (callback) => {
                 // Read batch
