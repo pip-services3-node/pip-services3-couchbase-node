@@ -170,10 +170,10 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
 
         if (filter && !_.isEmpty(filter)) statement += " WHERE " + filter;
 
+        if (sort && !_.isEmpty(sort)) statement += " ORDER BY " + sort;
+
         if (skip >= 0) statement += " OFFSET " + skip;
         statement += " LIMIT " + take;
-
-        if (sort && !_.isEmpty(sort)) statement += " ORDER BY " + sort;
 
         let query = this._query.fromString(statement);
         // Todo: Make it configurable?
