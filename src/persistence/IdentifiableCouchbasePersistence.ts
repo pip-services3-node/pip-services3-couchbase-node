@@ -177,7 +177,7 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
 
         let query = this._query.fromString(statement);
         // Todo: Make it configurable?
-        query.consistency(this._query.Consistency.REQUEST_PLUS);
+        query.consistency(this._query.Consistency.STATEMENT_PLUS);
         this._bucket.query(query, [], (err, items) => {
             if (err) {
                 callback(err, null);
