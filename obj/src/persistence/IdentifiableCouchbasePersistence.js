@@ -169,7 +169,7 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
             items = _.map(items, this.convertToPublic);
             items = _.filter(items, item => item != null);
             if (pagingEnabled) {
-                statement = "SELECT COUNT(*) FROM default";
+                statement = "SELECT COUNT(*) FROM `" + this._bucketName + "`";
                 if (filter && !_.isEmpty(filter))
                     statement += " WHERE " + filter;
                 query = this._query.fromString(statement);

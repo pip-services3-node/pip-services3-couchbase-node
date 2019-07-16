@@ -192,7 +192,7 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
             items = _.filter(items, item => item != null);
 
             if (pagingEnabled) {
-                statement = "SELECT COUNT(*) FROM default";
+                statement = "SELECT COUNT(*) FROM `" + this._bucketName + "`";
                 if (filter && !_.isEmpty(filter)) statement += " WHERE " + filter;
 
                 query = this._query.fromString(statement);
