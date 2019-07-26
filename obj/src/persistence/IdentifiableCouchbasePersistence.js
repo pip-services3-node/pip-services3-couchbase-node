@@ -23,6 +23,7 @@ const CouchbasePersistence_1 = require("./CouchbasePersistence");
 
  * ### Configuration parameters ###
  *
+ * - bucket:                      (optional) Couchbase bucket name
  * - collection:                  (optional) Couchbase collection name
  * - connection(s):
  *   - discovery_key:             (optional) a key to retrieve the connection from [[https://rawgit.com/pip-services-node/pip-services3-components-node/master/doc/api/interfaces/connect.idiscovery.html IDiscovery]]
@@ -52,7 +53,7 @@ const CouchbasePersistence_1 = require("./CouchbasePersistence");
  *     class MyCouchbasePersistence extends CouchbasePersistence<MyData, string> {
  *
  *     public constructor() {
- *         base("mydata", new MyDataCouchbaseSchema());
+ *         base("mybucket", "mydata", new MyDataCouchbaseSchema());
  *     }
  *
  *     private composeFilter(filter: FilterParams): any {
@@ -102,12 +103,14 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
      *
      * @param collection    (optional) a collection name.
      */
-    constructor(collection) {
-        super(collection);
-        //TODO (note for SS): is this needed? It's in CouchbasePersistence as well...
+    constructor(bucket, collection) {
+        super(bucket);
         this._maxPageSize = 100;
+        if (bucket == null)
+            throw new Error("Bucket name could not be null");
         if (collection == null)
             throw new Error("Collection name could not be null");
+        this._collectionName = collection;
     }
     /**
      * Configures component by passing configuration parameters.
@@ -117,6 +120,33 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
     configure(config) {
         super.configure(config);
         this._maxPageSize = config.getAsIntegerWithDefault("options.max_page_size", this._maxPageSize);
+        this._collectionName = config.getAsStringWithDefault("collection", this._collectionName);
+    }
+    /**
+     * Converts object value from internal to public format.
+     *
+     * @param value     an object in internal format to convert.
+     * @returns converted object in public format.
+     */
+    convertToPublic(value) {
+        if (value && value.toJSON)
+            value = value.toJSON();
+        if (value)
+            delete value._c;
+        return value;
+    }
+    /**
+     * Convert object value from public to internal format.
+     *
+     * @param value     an object in public format to convert.
+     * @returns converted object in internal format.
+     */
+    convertFromPublic(value) {
+        if (value) {
+            value = _.clone(value);
+            value._c = this._collectionName;
+        }
+        return value;
     }
     /**
      * Converts the given object from the public partial format.
@@ -148,8 +178,12 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         let skip = paging.getSkip(-1);
         let take = paging.getTake(this._maxPageSize);
         let pagingEnabled = paging.total;
+        let collectionFilter = "_c='" + this._collectionName + "'";
         if (filter && !_.isEmpty(filter))
-            statement += " WHERE " + filter;
+            filter = collectionFilter + " AND " + filter;
+        else
+            filter = collectionFilter;
+        statement += " WHERE " + filter;
         if (sort && !_.isEmpty(sort))
             statement += " ORDER BY " + sort;
         if (skip >= 0)

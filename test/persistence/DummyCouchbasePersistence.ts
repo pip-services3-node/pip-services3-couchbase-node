@@ -11,7 +11,7 @@ export class DummyCouchbasePersistence
     implements IDummyPersistence
 {
     public constructor() {
-        super('dummies');
+        super('test', 'dummies');
     }
 
     public getPageByFilter(correlationId: string, filter: FilterParams, paging: PagingParams, 

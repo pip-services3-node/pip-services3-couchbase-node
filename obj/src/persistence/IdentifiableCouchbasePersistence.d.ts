@@ -21,6 +21,7 @@ import { CouchbasePersistence } from './CouchbasePersistence';
 
  * ### Configuration parameters ###
  *
+ * - bucket:                      (optional) Couchbase bucket name
  * - collection:                  (optional) Couchbase collection name
  * - connection(s):
  *   - discovery_key:             (optional) a key to retrieve the connection from [[https://rawgit.com/pip-services-node/pip-services3-components-node/master/doc/api/interfaces/connect.idiscovery.html IDiscovery]]
@@ -50,7 +51,7 @@ import { CouchbasePersistence } from './CouchbasePersistence';
  *     class MyCouchbasePersistence extends CouchbasePersistence<MyData, string> {
  *
  *     public constructor() {
- *         base("mydata", new MyDataCouchbaseSchema());
+ *         base("mybucket", "mydata", new MyDataCouchbaseSchema());
  *     }
  *
  *     private composeFilter(filter: FilterParams): any {
@@ -96,18 +97,33 @@ import { CouchbasePersistence } from './CouchbasePersistence';
  */
 export declare class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> extends CouchbasePersistence implements IWriter<T, K>, IGetter<T, K>, ISetter<T> {
     protected _maxPageSize: number;
+    protected _collectionName: string;
     /**
      * Creates a new instance of the persistence component.
      *
      * @param collection    (optional) a collection name.
      */
-    constructor(collection: string);
+    constructor(bucket: string, collection: string);
     /**
      * Configures component by passing configuration parameters.
      *
      * @param config    configuration parameters to be set.
      */
     configure(config: ConfigParams): void;
+    /**
+     * Converts object value from internal to public format.
+     *
+     * @param value     an object in internal format to convert.
+     * @returns converted object in public format.
+     */
+    protected convertToPublic(value: any): any;
+    /**
+     * Convert object value from public to internal format.
+     *
+     * @param value     an object in public format to convert.
+     * @returns converted object in internal format.
+     */
+    protected convertFromPublic(value: any): any;
     /**
      * Converts the given object from the public partial format.
      *

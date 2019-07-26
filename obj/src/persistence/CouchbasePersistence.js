@@ -45,7 +45,7 @@ const CouchbaseConnectionResolver_1 = require("../connect/CouchbaseConnectionRes
  *     class MyCouchbasePersistence extends CouchbasePersistence<MyData> {
  *
  *       public constructor() {
- *           base("mydata", new MyDataCouchbaseSchema());
+ *           base("mydata", "mycollection", new MyDataCouchbaseSchema());
  *     }
  *
  *     public getByName(correlationId: string, name: string, callback: (err, item) => void): void {

@@ -16,6 +16,7 @@ import { IGetter } from 'pip-services3-data-node';
 import { ISetter } from 'pip-services3-data-node';
 
 import { CouchbasePersistence } from './CouchbasePersistence';
+import { runInThisContext } from 'vm';
 
 /**
  * Abstract persistence component that stores data in Couchbase
@@ -31,6 +32,7 @@ import { CouchbasePersistence } from './CouchbasePersistence';
 
  * ### Configuration parameters ###
  * 
+ * - bucket:                      (optional) Couchbase bucket name
  * - collection:                  (optional) Couchbase collection name
  * - connection(s):    
  *   - discovery_key:             (optional) a key to retrieve the connection from [[https://rawgit.com/pip-services-node/pip-services3-components-node/master/doc/api/interfaces/connect.idiscovery.html IDiscovery]]
@@ -60,7 +62,7 @@ import { CouchbasePersistence } from './CouchbasePersistence';
  *     class MyCouchbasePersistence extends CouchbasePersistence<MyData, string> {
  *    
  *     public constructor() {
- *         base("mydata", new MyDataCouchbaseSchema());
+ *         base("mybucket", "mydata", new MyDataCouchbaseSchema());
  *     }
  * 
  *     private composeFilter(filter: FilterParams): any {
@@ -105,21 +107,24 @@ import { CouchbasePersistence } from './CouchbasePersistence';
  *     });
  */
 export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> extends CouchbasePersistence
-    implements IWriter<T, K>, IGetter<T, K>, ISetter<T> 
-    {
-    //TODO (note for SS): is this needed? It's in CouchbasePersistence as well...
+    implements IWriter<T, K>, IGetter<T, K>, ISetter<T>  {
     protected _maxPageSize: number = 100;
+    protected _collectionName: string;
 
     /**
      * Creates a new instance of the persistence component.
      * 
      * @param collection    (optional) a collection name.
      */
-    public constructor(collection: string) {
-        super(collection);
+    public constructor(bucket: string, collection: string) {
+        super(bucket);
 
+        if (bucket == null)
+            throw new Error("Bucket name could not be null");
         if (collection == null)
             throw new Error("Collection name could not be null");
+
+        this._collectionName = collection;
     }
 
     /**
@@ -131,7 +136,38 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
         super.configure(config);
         
         this._maxPageSize = config.getAsIntegerWithDefault("options.max_page_size", this._maxPageSize);
+        this._collectionName = config.getAsStringWithDefault("collection", this._collectionName);
     }
+
+    /** 
+     * Converts object value from internal to public format.
+     * 
+     * @param value     an object in internal format to convert.
+     * @returns converted object in public format.
+     */
+    protected convertToPublic(value: any): any {
+        if (value && value.toJSON)
+            value = value.toJSON();
+
+        if (value)
+            delete value._c
+
+        return value;
+    }    
+
+    /** 
+     * Convert object value from public to internal format.
+     * 
+     * @param value     an object in public format to convert.
+     * @returns converted object in internal format.
+     */
+    protected convertFromPublic(value: any): any {
+        if (value) {
+            value = _.clone(value);
+            value._c = this._collectionName;
+        }
+        return value;
+    }    
 
     /** 
      * Converts the given object from the public partial format.
@@ -168,7 +204,11 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
         let take = paging.getTake(this._maxPageSize);
         let pagingEnabled = paging.total;
 
-        if (filter && !_.isEmpty(filter)) statement += " WHERE " + filter;
+        let collectionFilter = "_c='" + this._collectionName + "'"
+        if (filter && !_.isEmpty(filter))
+            filter = collectionFilter + " AND " + filter;
+        else filter = collectionFilter;
+        statement += " WHERE " + filter;
 
         if (sort && !_.isEmpty(sort)) statement += " ORDER BY " + sort;
 

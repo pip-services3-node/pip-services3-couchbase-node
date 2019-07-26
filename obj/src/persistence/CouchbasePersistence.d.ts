@@ -45,7 +45,7 @@ import { CouchbaseConnectionResolver } from '../connect/CouchbaseConnectionResol
  *     class MyCouchbasePersistence extends CouchbasePersistence<MyData> {
  *
  *       public constructor() {
- *           base("mydata", new MyDataCouchbaseSchema());
+ *           base("mydata", "mycollection", new MyDataCouchbaseSchema());
  *     }
  *
  *     public getByName(correlationId: string, name: string, callback: (err, item) => void): void {
