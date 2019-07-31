@@ -236,13 +236,13 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
                 if (filter && !_.isEmpty(filter)) statement += " WHERE " + filter;
 
                 query = this._query.fromString(statement);
-                this._bucket.query(statement, [], (err, counts) => {
+                this._bucket.query(query, [], (err, counts) => {
                     if (err) {
                         callback(err, null);
                         return;
                     }
                         
-                    let count = counts ? counts[0] : 0;
+                    let count = counts ? counts[0]['$1'] : 0;
                     let page = new DataPage<T>(items, count);
                     callback(null, page);
                 });

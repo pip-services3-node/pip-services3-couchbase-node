@@ -1,7 +1,7 @@
 var assert = require('chai').assert;
 var async = require('async');
 
-import { AnyValueMap } from 'pip-services3-commons-node';
+import { AnyValueMap, FilterParams, PagingParams } from 'pip-services3-commons-node';
 import { Dummy } from './Dummy';
 import { IDummyPersistence } from './IDummyPersistence';
 
@@ -193,6 +193,34 @@ export class DummyPersistenceFixture {
 
                     callback(err);
                 });
+            }
+        ], callback);
+    }
+
+    public testPaging(callback: (err: any) => void): void {
+        async.series([
+            (callback) => {
+                // Create one dummy
+                this._persistence.create(null, this._dummy1, (err: any, result: Dummy) => {
+                    assert.isNull(err);
+                    callback(err);
+                });
+            },
+            (callback) => {
+                this._persistence.getPageByFilter(
+                    null,
+                    new FilterParams(),
+                    new PagingParams(0, 100, true),
+                    (err, page) => {
+                        assert.isNull(err);
+
+                        assert.isNotNull(page);
+                        assert.lengthOf(page.data, 1);
+                        assert.equal(page.total, 1);
+
+                        callback(err);
+                    }
+                );
             }
         ], callback);
     }

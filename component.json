@@ -1,6 +1,6 @@
 {
     "name": "pip-services3-couchbase-node",
     "registry": "pipdevs",
-    "version": "3.0.9",
+    "version": "3.0.10",
     "build": 20
 }

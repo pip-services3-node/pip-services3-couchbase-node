@@ -57,4 +57,9 @@ suite('DummyCouchbasePersistence', ()=> {
     test('Batch Operations', (done) => {
         fixture.testBatchOperations(done);
     });
+
+    test('Paging', (done) => {
+        fixture.testPaging(done);
+    });
+
 });
