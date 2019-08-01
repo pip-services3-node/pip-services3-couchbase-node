@@ -19,6 +19,7 @@ suite('DummyCouchbasePersistence', ()=> {
     setup((done) => {
         let dbConfig = ConfigParams.fromTuples(
             'options.auto_create', true,
+            'options.auto_index', true,
             'connection.uri', couchbaseUri,
             'connection.host', couchbaseHost,
             'connection.port', couchbasePort,

@@ -241,13 +241,13 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
                         // Otherwise opening will fail
                         if (err == null)
                             setTimeout(() => { callback(err); }, 2000);
-                        else callback();
+                        else callback(err);
                     });
                 },
                 (callback) => {
                     this._bucket = this._cluster.openBucket(this._bucketName, (err) => {
                         if (err) {
-                            console.error(err);
+                            this._logger.error(correlationId, err, "Failed to open bucket");
                             err = new ConnectionException(correlationId, "CONNECT_FAILED", "Connection to couchbase failed").withCause(err);
                             this._bucket = null;
                         } else {
@@ -260,7 +260,7 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
                 },
                 (callback) => {
                     let autoIndex = this._options.getAsBoolean('auto_index');
-                    if (!newBucket || !autoIndex) {
+                    if (!newBucket && !autoIndex) {
                         callback();
                         return;
                     }
@@ -288,6 +288,8 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
         this._cluster = null;
         this._bucket = null;
         this._query = null;
+
+        this._logger.debug(correlationId, "Disconnected from couchbase bucket %s", this._bucketName);
 
         callback(null);
     }
