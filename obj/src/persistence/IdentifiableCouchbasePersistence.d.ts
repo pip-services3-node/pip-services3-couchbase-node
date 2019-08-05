@@ -132,6 +132,18 @@ export declare class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>
      */
     protected convertFromPublicPartial(value: any): any;
     /**
+     * Generates unique id for specific collection in the bucket
+     * @param value a public unique id.
+     * @returns a unique bucket id.
+     */
+    protected generateBucketId(value: K): string;
+    /**
+     * Generates a list of unique ids for specific collection in the bucket
+     * @param value a public unique ids.
+     * @returns a unique bucket ids.
+     */
+    protected generateBucketIds(value: any): string[];
+    /**
      * Gets a page of data items retrieved by a given filter and sorted according to sort parameters.
      *
      * This method shall be called by a public getPageByFilter method from child class that

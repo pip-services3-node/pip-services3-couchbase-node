@@ -180,6 +180,26 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
     }    
     
     /**
+     * Generates unique id for specific collection in the bucket
+     * @param value a public unique id.
+     * @returns a unique bucket id.
+     */
+    protected generateBucketId(value: K): string {
+        if (value == null) return null;
+        return this._collectionName + value;
+    }
+
+    /**
+     * Generates a list of unique ids for specific collection in the bucket
+     * @param value a public unique ids.
+     * @returns a unique bucket ids.
+     */
+    protected generateBucketIds(value: any): string[] {
+        if (value == null) return null;
+        return _.map(value, (id) => { return this.generateBucketId(id); });
+    }
+
+    /**
      * Gets a page of data items retrieved by a given filter and sorted according to sort parameters.
      * 
      * This method shall be called by a public getPageByFilter method from child class that
@@ -306,7 +326,7 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
     public getListByIds(correlationId: string, ids: K[],
         callback: (err: any, items: T[]) => void): void {
 
-        let objectIds = _.map(ids, id => "" + id);
+        let objectIds = this.generateBucketIds(ids);
 
         this._bucket.getMulti(objectIds, (count, items) => {
             // Convert to array of results
@@ -347,7 +367,7 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
      * @param callback          callback function that receives data item or error.
      */
     public getOneById(correlationId: string, id: K, callback: (err: any, item: T) => void): void {
-        let objectId = "" + id;
+        let objectId = this.generateBucketId(id);
         this._bucket.get(objectId, (err, result) => {
             // Ignore "Key does not exist on the server" error
             if (err && err.message && err.code == 13)
@@ -425,9 +445,10 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
         let newItem: any = _.clone(item);
         newItem.id = item.id || IdGenerator.nextLong();
         let id = newItem.id.toString();
+        let objectId = this.generateBucketId(id);
         newItem = this.convertFromPublic(newItem);
 
-        this._bucket.insert(id, newItem, (err, result) => {
+        this._bucket.insert(objectId, newItem, (err, result) => {
             if (!err)
                 this._logger.trace(correlationId, "Created in %s with id = %s", this._bucketName, id);
 
@@ -454,9 +475,10 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
         let newItem: any = _.clone(item);
         newItem.id = item.id || IdGenerator.nextLong();
         let id = newItem.id.toString();
+        let objectId = this.generateBucketId(id);
         newItem = this.convertFromPublic(newItem);
 
-        this._bucket.upsert(id, newItem, (err, result) => {
+        this._bucket.upsert(objectId, newItem, (err, result) => {
             if (!err)
                 this._logger.trace(correlationId, "Set in %s with id = %s", this._bucketName, id);
            
@@ -483,8 +505,9 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
         let newItem = _.clone(item);
         newItem = this.convertFromPublic(newItem);
         let id = newItem.id.toString();
+        let objectId = this.generateBucketId(id);
 
-        this._bucket.replace(id, newItem, (err, result) => {
+        this._bucket.replace(objectId, newItem, (err, result) => {
             if (!err)
                 this._logger.trace(correlationId, "Updated in %s with id = %s", this._bucketName, id);
 
@@ -513,7 +536,7 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
 
         let newItem = data.getAsObject();
         newItem = this.convertFromPublicPartial(newItem);
-        let objectId = "" + id;
+        let objectId = this.generateBucketId(id);
 
         // Todo: repeat until update is successful
         this._bucket.get(objectId, (err, result) => {
@@ -526,7 +549,7 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
 
             this._bucket.replace(objectId, objectValue, { cas: result.cas }, (err, result) => {
                 if (!err)
-                    this._logger.trace(correlationId, "Updated partially in %s with id = %s", this._bucketName, objectId);
+                    this._logger.trace(correlationId, "Updated partially in %s with id = %s", this._bucketName, id);
 
                 if (callback) {
                     newItem = err == null ? this.convertToPublic(objectValue) : null;
@@ -544,7 +567,7 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
      * @param callback          (optional) callback function that receives deleted item or error.
      */
     public deleteById(correlationId: string, id: K, callback?: (err: any, item: T) => void): void {
-        let objectId = "" + id;
+        let objectId = this.generateBucketId(id);
         this._bucket.get(objectId, (err, result) => {
             if (err || result == null || result.value == null) {
                 callback(err, null);
@@ -559,7 +582,7 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
                     err = null;
 
                 if (!err)
-                    this._logger.trace(correlationId, "Deleted from %s with id = %s", this._bucketName, objectId);
+                    this._logger.trace(correlationId, "Deleted from %s with id = %s", this._bucketName, id);
 
                 if (callback) {
                     oldItem = err == null ? oldItem : null;
@@ -604,16 +627,23 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
      * @param callback          (optional) callback function that receives error or null for success.
      */
     public deleteByIds(correlationId: string, ids: K[], callback?: (err: any) => void): void {
+        let count = 0;
         async.each(ids, (id, callback) => {
-            let objectId = "" + id;
+            let objectId = this.generateBucketId(id);
 
             this._bucket.remove(objectId, (err) => {
                 // Ignore "Key does not exist on the server" error
                 if (err && err.message && err.code == 13)
                     err = null;
 
+                if (err == null)
+                    count++;
+
                 callback(err);
             });
-        }, callback);
+        }, (err) => {
+            this._logger.trace(correlationId, "Deleted %d items from %s", count, this._bucketName);
+            if (callback) callback(err);
+        });
     }
 }
