@@ -7,7 +7,7 @@ const pip_services3_commons_node_1 = require("pip-services3-commons-node");
 const pip_services3_commons_node_2 = require("pip-services3-commons-node");
 const pip_services3_components_node_1 = require("pip-services3-components-node");
 const pip_services3_components_node_2 = require("pip-services3-components-node");
-const CouchbaseConnection_1 = require("./CouchbaseConnection");
+const CouchbaseConnectionParams_1 = require("./CouchbaseConnectionParams");
 /**
  * Helper class that resolves Couchbase connection and credential parameters,
  * validates them and generates a connection URI.
@@ -87,7 +87,7 @@ class CouchbaseConnectionResolver {
         return null;
     }
     composeConnection(connections, credential) {
-        let result = new CouchbaseConnection_1.CouchbaseConnection();
+        let result = new CouchbaseConnectionParams_1.CouchbaseConnectionParams();
         if (credential) {
             result.username = credential.getUsername();
             if (result.username)

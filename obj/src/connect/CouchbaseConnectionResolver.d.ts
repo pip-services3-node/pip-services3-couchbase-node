@@ -4,7 +4,7 @@ import { IConfigurable } from 'pip-services3-commons-node';
 import { ConfigParams } from 'pip-services3-commons-node';
 import { ConnectionResolver } from 'pip-services3-components-node';
 import { CredentialResolver } from 'pip-services3-components-node';
-import { CouchbaseConnection } from './CouchbaseConnection';
+import { CouchbaseConnectionParams } from './CouchbaseConnectionParams';
 /**
  * Helper class that resolves Couchbase connection and credential parameters,
  * validates them and generates a connection URI.
@@ -59,5 +59,5 @@ export declare class CouchbaseConnectionResolver implements IReferenceable, ICon
      * @param correlationId     (optional) transaction id to trace execution through call chain.
      * @param callback 			callback function that receives resolved URI or error.
      */
-    resolve(correlationId: string, callback: (err: any, connection: CouchbaseConnection) => void): void;
+    resolve(correlationId: string, callback: (err: any, connection: CouchbaseConnectionParams) => void): void;
 }

@@ -1,27 +1,15 @@
 # Couchbase components for Pip.Services in Node.js Changelog
 
-## <a name="3.0.0"></a> 3.0.0 (2018-08-21) 
-
-### Breaking Changes
-* Moved to a separate package
-
-## <a name="1.2.0"></a> 1.2.0 (2018-08-10) 
+## <a name="3.1.0"></a> 3.1.0 (2019-12-06) 
 
 ### Features
-* Added RedisCache
-* Added RedisLock
+* **build** DefaultCouchbaseFactory
+* **persistence** CouchbaseConnection
 
-## <a name="1.1.0"></a> 1.1.0 (2018-03-26) 
-
-### Features
-* Added PrometheusCounters and PrometheusMetricsService
-* Added labels to PrometheusCounters and PrometheusMetricsService
-
-## <a name="1.0.0"></a> 1.0.0 (2018-03-20) 
+## <a name="3.0.0"></a> 3.0.0 (2011-08-01) 
 
 ### Features
-* **memcached** Added MemcachedCache
-* **memcached** Added MemcachedLock
-* **fluentd** Added FluentdLogger
-* **elasticsearch** Added ElasticSearchLogger
+* **connect** CouchbaseConnectionResolver
+* **persistence** CouchbasePersistence
+* **persistence** IdentifiableCouchbasePersistence
 

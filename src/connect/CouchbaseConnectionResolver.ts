@@ -12,7 +12,7 @@ import { CredentialResolver } from 'pip-services3-components-node';
 import { ConnectionParams } from 'pip-services3-components-node';
 import { CredentialParams } from 'pip-services3-components-node';
 
-import { CouchbaseConnection } from './CouchbaseConnection';
+import { CouchbaseConnectionParams } from './CouchbaseConnectionParams';
 
 /**
  * Helper class that resolves Couchbase connection and credential parameters,
@@ -99,8 +99,8 @@ export class CouchbaseConnectionResolver implements IReferenceable, IConfigurabl
         return null;
     }
 
-    private composeConnection(connections: ConnectionParams[], credential: CredentialParams): CouchbaseConnection {
-        let result = new CouchbaseConnection();
+    private composeConnection(connections: ConnectionParams[], credential: CredentialParams): CouchbaseConnectionParams {
+        let result = new CouchbaseConnectionParams();
 
         if (credential) {
             result.username = credential.getUsername();
@@ -169,7 +169,7 @@ export class CouchbaseConnectionResolver implements IReferenceable, IConfigurabl
      * @param correlationId     (optional) transaction id to trace execution through call chain.
      * @param callback 			callback function that receives resolved URI or error.
      */
-    public resolve(correlationId: string, callback: (err: any, connection: CouchbaseConnection) => void): void {
+    public resolve(correlationId: string, callback: (err: any, connection: CouchbaseConnectionParams) => void): void {
         let connections: ConnectionParams[];
         let credential: CredentialParams;
 

@@ -1,7 +1,6 @@
 /** 
  * @module connect
  * @preferred
- * 
  */
-export { CouchbaseConnection } from './CouchbaseConnection';
+export { CouchbaseConnectionParams } from './CouchbaseConnectionParams';
 export { CouchbaseConnectionResolver } from './CouchbaseConnectionResolver';

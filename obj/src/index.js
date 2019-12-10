@@ -8,4 +8,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 __export(require("./connect"));
 __export(require("./persistence"));
+__export(require("./build"));
 //# sourceMappingURL=index.js.map

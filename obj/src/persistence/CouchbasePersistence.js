@@ -4,8 +4,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 let async = require('async');
 const pip_services3_commons_node_1 = require("pip-services3-commons-node");
 const pip_services3_commons_node_2 = require("pip-services3-commons-node");
+const pip_services3_commons_node_3 = require("pip-services3-commons-node");
 const pip_services3_components_node_1 = require("pip-services3-components-node");
-const CouchbaseConnectionResolver_1 = require("../connect/CouchbaseConnectionResolver");
+const pip_services3_commons_node_4 = require("pip-services3-commons-node");
+const CouchbaseConnection_1 = require("./CouchbaseConnection");
 /**
  * Abstract persistence component that stores data in Couchbase
  * and is based using Couchbaseose object relational mapping.
@@ -84,18 +86,14 @@ class CouchbasePersistence {
      * @param bucket    (optional) a bucket name.
      */
     constructor(bucket) {
-        this._defaultConfig = pip_services3_commons_node_1.ConfigParams.fromTuples("bucket", null, 
-        // connections.*
-        // credential.*
-        "options.auto_create", false, "options.auto_index", true, "options.flush_enabled", true, "options.bucket_type", "couchbase", "options.ram_quota", 100);
+        /**
+         * The dependency resolver.
+         */
+        this._dependencyResolver = new pip_services3_commons_node_4.DependencyResolver(CouchbasePersistence._defaultConfig);
         /**
          * The logger.
          */
         this._logger = new pip_services3_components_node_1.CompositeLogger();
-        /**
-         * The connection resolver.
-         */
-        this._connectionResolver = new CouchbaseConnectionResolver_1.CouchbaseConnectionResolver();
         /**
          * The configuration options.
          */
@@ -108,8 +106,9 @@ class CouchbasePersistence {
      * @param config    configuration parameters to be set.
      */
     configure(config) {
-        config = config.setDefaults(this._defaultConfig);
-        this._connectionResolver.configure(config);
+        config = config.setDefaults(CouchbasePersistence._defaultConfig);
+        this._config = config;
+        this._dependencyResolver.configure(config);
         this._bucketName = config.getAsStringWithDefault('bucket', this._bucketName);
         this._options = this._options.override(config.getSection("options"));
     }
@@ -119,8 +118,33 @@ class CouchbasePersistence {
      * @param references 	references to locate the component dependencies.
      */
     setReferences(references) {
+        this._references = references;
         this._logger.setReferences(references);
-        this._connectionResolver.setReferences(references);
+        // Get connection
+        this._dependencyResolver.setReferences(references);
+        this._connection = this._dependencyResolver.getOneOptional('connection');
+        // Or create a local one
+        if (this._connection == null) {
+            this._connection = this.createConnection();
+            this._localConnection = true;
+        }
+        else {
+            this._localConnection = false;
+        }
+    }
+    /**
+     * Unsets (clears) previously set references to dependent components.
+     */
+    unsetReferences() {
+        this._connection = null;
+    }
+    createConnection() {
+        let connection = new CouchbaseConnection_1.CouchbaseConnection(this._bucketName);
+        if (this._config)
+            connection.configure(this._config);
+        if (this._references)
+            connection.setReferences(this._references);
+        return connection;
     }
     /**
      * Converts object value from internal to public format.
@@ -148,7 +172,7 @@ class CouchbasePersistence {
      * @returns true if the component has been opened and false otherwise.
      */
     isOpen() {
-        return this._cluster.readyState == 1;
+        return this._opened;
     }
     /**
      * Opens the component.
@@ -157,74 +181,42 @@ class CouchbasePersistence {
      * @param callback 			callback function that receives error or null no errors occured.
      */
     open(correlationId, callback) {
-        this._connectionResolver.resolve(correlationId, (err, connection) => {
+        if (this._opened) {
+            callback(null);
+            return;
+        }
+        if (this._connection == null) {
+            this._connection = this.createConnection();
+            this._localConnection = true;
+        }
+        let openCurl = (err) => {
+            if (err == null && this._connection == null) {
+                err = new pip_services3_commons_node_3.InvalidStateException(correlationId, 'NO_CONNECTION', 'Couchbase connection is missing');
+            }
+            if (err == null && !this._connection.isOpen()) {
+                err = new pip_services3_commons_node_2.ConnectionException(correlationId, "CONNECT_FAILED", "Couchbase connection is not opened");
+            }
+            this._opened = false;
             if (err) {
                 if (callback)
                     callback(err);
-                else
-                    this._logger.error(correlationId, err, 'Failed to resolve Couchbase connection');
-                return;
             }
-            this._logger.debug(correlationId, "Connecting to couchbase");
-            let couchbase = require('couchbase');
-            this._cluster = new couchbase.Cluster(connection.uri);
-            if (connection.username)
-                this._cluster.authenticate(connection.username, connection.password);
-            let newBucket = false;
-            async.series([
-                (callback) => {
-                    let autocreate = this._options.getAsBoolean('auto_create');
-                    if (!autocreate) {
-                        callback();
-                        return;
-                    }
-                    let options = {
-                        bucketType: this._options.getAsStringWithDefault('bucket_type', 'couchbase'),
-                        ramQuotaMB: this._options.getAsLongWithDefault('ram_quota', 100),
-                        flushEnabled: this._options.getAsBooleanWithDefault('flush_enabled', true) ? 1 : 0
-                    };
-                    this._cluster.manager().createBucket(this._bucketName, options, (err, result) => {
-                        newBucket = err == null;
-                        if (err && err.message && err.message.indexOf('name already exist') > 0) {
-                            callback();
-                            return;
-                        }
-                        // Delay to allow couchbase to initialize the bucket
-                        // Otherwise opening will fail
-                        if (err == null)
-                            setTimeout(() => { callback(err); }, 2000);
-                        else
-                            callback(err);
-                    });
-                },
-                (callback) => {
-                    this._bucket = this._cluster.openBucket(this._bucketName, (err) => {
-                        if (err) {
-                            this._logger.error(correlationId, err, "Failed to open bucket");
-                            err = new pip_services3_commons_node_2.ConnectionException(correlationId, "CONNECT_FAILED", "Connection to couchbase failed").withCause(err);
-                            this._bucket = null;
-                        }
-                        else {
-                            this._query = couchbase.N1qlQuery;
-                            this._logger.debug(correlationId, "Connected to couchbase bucket %s", this._bucketName);
-                        }
-                        callback(err);
-                    });
-                },
-                (callback) => {
-                    let autoIndex = this._options.getAsBoolean('auto_index');
-                    if (!newBucket && !autoIndex) {
-                        callback();
-                        return;
-                    }
-                    this._bucket.manager().createPrimaryIndex({ ignoreIfExists: 1 }, (err) => {
-                        callback(err);
-                    });
-                }
-            ], (err) => {
-                callback(err);
-            });
-        });
+            else {
+                this._cluster = this._connection.getConnection();
+                this._bucket = this._connection.getBucket();
+                this._bucketName = this._connection.getBucketName();
+                let couchbase = require('couchbase');
+                this._query = couchbase.N1qlQuery;
+                if (callback)
+                    callback(null);
+            }
+        };
+        if (this._localConnection) {
+            this._connection.open(correlationId, openCurl);
+        }
+        else {
+            openCurl(null);
+        }
     }
     /**
      * Closes component and frees used resources.
@@ -233,13 +225,28 @@ class CouchbasePersistence {
      * @param callback 			callback function that receives error or null no errors occured.
      */
     close(correlationId, callback) {
-        if (this._bucket)
-            this._bucket.disconnect();
-        this._cluster = null;
-        this._bucket = null;
-        this._query = null;
-        this._logger.debug(correlationId, "Disconnected from couchbase bucket %s", this._bucketName);
-        callback(null);
+        if (!this._opened) {
+            callback(null);
+            return;
+        }
+        if (this._connection == null) {
+            callback(new pip_services3_commons_node_3.InvalidStateException(correlationId, 'NO_CONNECTION', 'MongoDb connection is missing'));
+            return;
+        }
+        let closeCurl = (err) => {
+            this._opened = false;
+            this._cluster = null;
+            this._bucket = null;
+            this._query = null;
+            if (callback)
+                callback(err);
+        };
+        if (this._localConnection) {
+            this._connection.close(correlationId, closeCurl);
+        }
+        else {
+            closeCurl(null);
+        }
     }
     /**
      * Clears component state.
@@ -265,4 +272,8 @@ class CouchbasePersistence {
     }
 }
 exports.CouchbasePersistence = CouchbasePersistence;
+CouchbasePersistence._defaultConfig = pip_services3_commons_node_1.ConfigParams.fromTuples("bucket", null, "dependencies.connection", "*:connection:couchbase:*:1.0", 
+// connections.*
+// credential.*
+"options.auto_create", false, "options.auto_index", true, "options.flush_enabled", true, "options.bucket_type", "couchbase", "options.ram_quota", 100);
 //# sourceMappingURL=CouchbasePersistence.js.map

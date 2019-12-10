@@ -2,15 +2,19 @@
 let async = require('async');
 
 import { IReferenceable } from 'pip-services3-commons-node';
+import { IUnreferenceable } from 'pip-services3-commons-node';
 import { IReferences } from 'pip-services3-commons-node';
 import { IConfigurable } from 'pip-services3-commons-node';
 import { IOpenable } from 'pip-services3-commons-node';
 import { ICleanable } from 'pip-services3-commons-node';
 import { ConfigParams } from 'pip-services3-commons-node';
 import { ConnectionException } from 'pip-services3-commons-node';
+import { InvalidStateException } from 'pip-services3-commons-node';
 import { CompositeLogger } from 'pip-services3-components-node';
+import { DependencyResolver } from 'pip-services3-commons-node';
 
 import { CouchbaseConnectionResolver } from '../connect/CouchbaseConnectionResolver';
+import { CouchbaseConnection } from './CouchbaseConnection';
 
 /**
  * Abstract persistence component that stores data in Couchbase
@@ -83,10 +87,11 @@ import { CouchbaseConnectionResolver } from '../connect/CouchbaseConnectionResol
  *         });
  *     });
  */
-export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpenable, ICleanable {
+export class CouchbasePersistence implements IReferenceable, IUnreferenceable, IConfigurable, IOpenable, ICleanable {
 
-    private _defaultConfig: ConfigParams = ConfigParams.fromTuples(
+    private static _defaultConfig: ConfigParams = ConfigParams.fromTuples(
         "bucket", null,
+        "dependencies.connection", "*:connection:couchbase:*:1.0",
 
         // connections.*
         // credential.*
@@ -98,14 +103,23 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
         "options.ram_quota", 100,
     );
 
+    private _config: ConfigParams;
+    private _references: IReferences;
+    private _opened: boolean;
+    private _localConnection: boolean;
+
+    /**
+     * The dependency resolver.
+     */
+    protected _dependencyResolver: DependencyResolver = new DependencyResolver(CouchbasePersistence._defaultConfig);
     /** 
      * The logger.
      */
     protected _logger: CompositeLogger = new CompositeLogger();
     /**
-     * The connection resolver.
+     * The Couchbase connection component.
      */
-    protected _connectionResolver: CouchbaseConnectionResolver = new CouchbaseConnectionResolver();
+    protected _connection: CouchbaseConnection;
     /**
      * The configuration options.
      */
@@ -143,9 +157,10 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
      * @param config    configuration parameters to be set.
      */
     public configure(config: ConfigParams): void {
-        config = config.setDefaults(this._defaultConfig);
+        config = config.setDefaults(CouchbasePersistence._defaultConfig);
+        this._config = config;
 
-        this._connectionResolver.configure(config);
+        this._dependencyResolver.configure(config);
 
         this._bucketName = config.getAsStringWithDefault('bucket', this._bucketName);
         this._options = this._options.override(config.getSection("options"));
@@ -157,8 +172,38 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
 	 * @param references 	references to locate the component dependencies. 
      */
     public setReferences(references: IReferences): void {
+        this._references = references;
         this._logger.setReferences(references);
-        this._connectionResolver.setReferences(references);
+
+        // Get connection
+        this._dependencyResolver.setReferences(references);
+        this._connection = this._dependencyResolver.getOneOptional('connection');
+        // Or create a local one
+        if (this._connection == null) {
+            this._connection = this.createConnection();
+            this._localConnection = true;
+        } else {
+            this._localConnection = false;
+        }
+    }
+
+    /**
+	 * Unsets (clears) previously set references to dependent components. 
+     */
+    public unsetReferences(): void {
+        this._connection = null;
+    }
+
+    private createConnection(): CouchbaseConnection {
+        let connection = new CouchbaseConnection(this._bucketName);
+        
+        if (this._config)
+            connection.configure(this._config);
+        
+        if (this._references)
+            connection.setReferences(this._references);
+            
+        return connection;
     }
 
     /** 
@@ -189,7 +234,7 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
 	 * @returns true if the component has been opened and false otherwise.
      */
     public isOpen(): boolean {
-        return this._cluster.readyState == 1;
+        return this._opened;
     }
 
     /**
@@ -199,80 +244,46 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
      * @param callback 			callback function that receives error or null no errors occured.
      */
     public open(correlationId: string, callback?: (err: any) => void): void {
-        this._connectionResolver.resolve(correlationId, (err, connection) => {
-            if (err) {
-                if (callback) callback(err);
-                else this._logger.error(correlationId, err, 'Failed to resolve Couchbase connection');
-                return;
+    	if (this._opened) {
+            callback(null);
+            return;
+        }
+        
+        if (this._connection == null) {
+            this._connection = this.createConnection();
+            this._localConnection = true;
+        }
+
+        let openCurl = (err) => {
+            if (err == null && this._connection == null) {
+                err = new InvalidStateException(correlationId, 'NO_CONNECTION', 'Couchbase connection is missing');
             }
 
-            this._logger.debug(correlationId, "Connecting to couchbase");
+            if (err == null && !this._connection.isOpen()) {
+                err = new ConnectionException(correlationId, "CONNECT_FAILED", "Couchbase connection is not opened");
+            }
 
-            let couchbase = require('couchbase');
-            this._cluster = new couchbase.Cluster(connection.uri);
-            if (connection.username)
-                this._cluster.authenticate(connection.username, connection.password);
+            this._opened = false;
 
-            let newBucket = false;
+            if (err) {
+                if (callback) callback(err);
+            } else {
+                this._cluster = this._connection.getConnection();
+                this._bucket = this._connection.getBucket();
+                this._bucketName = this._connection.getBucketName();
+                
+                let couchbase = require('couchbase');
+                this._query = couchbase.N1qlQuery;
 
-            async.series([
-                (callback) => {
-                    let autocreate = this._options.getAsBoolean('auto_create');
-                    if (!autocreate) {
-                        callback();
-                        return;
-                    }
+                if (callback) callback(null);
+            }
+        };
 
-                    let options = {
-                        bucketType: this._options.getAsStringWithDefault('bucket_type', 'couchbase'),
-                        ramQuotaMB: this._options.getAsLongWithDefault('ram_quota', 100),
-                        flushEnabled: this._options.getAsBooleanWithDefault('flush_enabled', true) ? 1 : 0
-                    };
-
-                    this._cluster.manager().createBucket(this._bucketName, options, (err, result) => {
-                        newBucket = err == null;
-
-                        if (err && err.message && err.message.indexOf('name already exist') > 0) {
-                            callback();
-                            return;
-                        }
-
-                        // Delay to allow couchbase to initialize the bucket
-                        // Otherwise opening will fail
-                        if (err == null)
-                            setTimeout(() => { callback(err); }, 2000);
-                        else callback(err);
-                    });
-                },
-                (callback) => {
-                    this._bucket = this._cluster.openBucket(this._bucketName, (err) => {
-                        if (err) {
-                            this._logger.error(correlationId, err, "Failed to open bucket");
-                            err = new ConnectionException(correlationId, "CONNECT_FAILED", "Connection to couchbase failed").withCause(err);
-                            this._bucket = null;
-                        } else {
-                            this._query = couchbase.N1qlQuery;
-                            this._logger.debug(correlationId, "Connected to couchbase bucket %s", this._bucketName);
-                        }
-
-                        callback(err);
-                    });
-                },
-                (callback) => {
-                    let autoIndex = this._options.getAsBoolean('auto_index');
-                    if (!newBucket && !autoIndex) {
-                        callback();
-                        return;
-                    }
-
-                    this._bucket.manager().createPrimaryIndex({ ignoreIfExists: 1}, (err) => {
-                        callback(err);
-                    });
-                }
-            ], (err) => {
-                callback(err);
-            });
-        });
+        if (this._localConnection) {
+            this._connection.open(correlationId, openCurl);
+        } else {
+            openCurl(null);
+        }
     }
 
     /**
@@ -282,16 +293,30 @@ export class CouchbasePersistence implements IReferenceable, IConfigurable, IOpe
      * @param callback 			callback function that receives error or null no errors occured.
      */
     public close(correlationId: string, callback?: (err: any) => void): void {
-        if (this._bucket)
-            this._bucket.disconnect();
+    	if (!this._opened) {
+            callback(null);
+            return;
+        }
 
-        this._cluster = null;
-        this._bucket = null;
-        this._query = null;
+        if (this._connection == null) {
+            callback(new InvalidStateException(correlationId, 'NO_CONNECTION', 'MongoDb connection is missing'));
+            return;
+        }
+        
+        let closeCurl = (err) => {
+            this._opened = false;
+            this._cluster = null;
+            this._bucket = null;
+            this._query = null;
+    
+            if (callback) callback(err);
+        }
 
-        this._logger.debug(correlationId, "Disconnected from couchbase bucket %s", this._bucketName);
-
-        callback(null);
+        if (this._localConnection) {
+            this._connection.close(correlationId, closeCurl);
+        } else {
+            closeCurl(null);
+        }
     }
 
     /**
