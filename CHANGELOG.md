@@ -1,5 +1,10 @@
 # Couchbase components for Pip.Services in Node.js Changelog
 
+## <a name="3.2.0"></a> 3.2.0 (2020-05-18) 
+
+### Features
+* Added getCountByFilter method
+
 ## <a name="3.1.0"></a> 3.1.0 (2019-12-06) 
 
 ### Features

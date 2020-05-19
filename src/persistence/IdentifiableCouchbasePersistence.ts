@@ -274,6 +274,44 @@ export class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>, K> ext
     }
 
     /**
+     * Gets a number of data items retrieved by a given filter.
+     * 
+     * This method shall be called by a public getCountByFilter method from child class that
+     * receives FilterParams and converts them into a filter function.
+     * 
+     * @param correlationId     (optional) transaction id to trace execution through call chain.
+     * @param filter            (optional) a filter query string after WHERE clause
+     * @param callback          callback function that receives a data page or error.
+     */
+    protected getCountByFilter(correlationId: string, filter: any,
+        callback: (err: any, count: number) => void): void {
+
+
+        let collectionFilter = "_c='" + this._collectionName + "'"
+        if (filter && !_.isEmpty(filter))
+            filter = collectionFilter + " AND " + filter;
+        else filter = collectionFilter;
+
+        let statement = "SELECT COUNT(*) FROM `" + this._bucketName + "`";
+        if (filter && !_.isEmpty(filter)) statement += " WHERE " + filter;
+
+        let query = this._query.fromString(statement);
+        this._bucket.query(query, [], (err, counts) => {
+            if (err) {
+                callback(err, null);
+                return;
+            }
+                
+            let count = counts ? counts[0]['$1'] : 0;
+
+            if (count != null)
+                this._logger.trace(correlationId, "Counted %d items in %s", count, this._bucketName);
+
+            callback(null, count);
+        });
+    }
+
+    /**
      * Gets a list of data items retrieved by a given filter and sorted according to sort parameters.
      * 
      * This method shall be called by a public getListByFilter method from child class that

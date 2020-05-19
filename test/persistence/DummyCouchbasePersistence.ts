@@ -27,4 +27,19 @@ export class DummyCouchbasePersistence
 
         super.getPageByFilter(correlationId, filterCondition, paging, null, null, callback);
     }
+
+    public getCountByFilter(correlationId: string, filter: FilterParams, 
+        callback: (err: any, count: number) => void): void {
+        filter = filter || new FilterParams();
+        let key = filter.getAsNullableString('key');
+
+        let filterCondition = "";
+        let filterParams = [];
+        if (key != null) {
+            filterCondition += "key='" + key + "'";
+        }
+
+        super.getCountByFilter(correlationId, filterCondition, callback);
+    }
+
 }

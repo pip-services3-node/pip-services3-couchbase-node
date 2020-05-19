@@ -158,6 +158,17 @@ export declare class IdentifiableCouchbasePersistence<T extends IIdentifiable<K>
      */
     protected getPageByFilter(correlationId: string, filter: any, paging: PagingParams, sort: any, select: any, callback: (err: any, items: DataPage<T>) => void): void;
     /**
+     * Gets a number of data items retrieved by a given filter.
+     *
+     * This method shall be called by a public getCountByFilter method from child class that
+     * receives FilterParams and converts them into a filter function.
+     *
+     * @param correlationId     (optional) transaction id to trace execution through call chain.
+     * @param filter            (optional) a filter query string after WHERE clause
+     * @param callback          callback function that receives a data page or error.
+     */
+    protected getCountByFilter(correlationId: string, filter: any, callback: (err: any, count: number) => void): void;
+    /**
      * Gets a list of data items retrieved by a given filter and sorted according to sort parameters.
      *
      * This method shall be called by a public getListByFilter method from child class that
