@@ -6,8 +6,6 @@ let _ = require('lodash');
 /** @hidden */
 let async = require('async');
 const pip_services3_commons_node_1 = require("pip-services3-commons-node");
-const pip_services3_commons_node_2 = require("pip-services3-commons-node");
-const pip_services3_commons_node_3 = require("pip-services3-commons-node");
 const CouchbasePersistence_1 = require("./CouchbasePersistence");
 /**
  * Abstract persistence component that stores data in Couchbase
@@ -101,16 +99,16 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
     /**
      * Creates a new instance of the persistence component.
      *
+     * @param bucket    (optional) a bucket name.
      * @param collection    (optional) a collection name.
      */
     constructor(bucket, collection) {
-        super(bucket);
-        this._maxPageSize = 100;
+        super(bucket, collection);
         if (bucket == null)
             throw new Error("Bucket name could not be null");
         if (collection == null)
             throw new Error("Collection name could not be null");
-        this._collectionName = collection;
+        //this._collectionName = collection;
     }
     /**
      * Configures component by passing configuration parameters.
@@ -158,16 +156,6 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         return this.convertFromPublic(value);
     }
     /**
-     * Generates unique id for specific collection in the bucket
-     * @param value a public unique id.
-     * @returns a unique bucket id.
-     */
-    generateBucketId(value) {
-        if (value == null)
-            return null;
-        return this._collectionName + value;
-    }
-    /**
      * Generates a list of unique ids for specific collection in the bucket
      * @param value a public unique ids.
      * @returns a unique bucket ids.
@@ -176,140 +164,6 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         if (value == null)
             return null;
         return _.map(value, (id) => { return this.generateBucketId(id); });
-    }
-    /**
-     * Gets a page of data items retrieved by a given filter and sorted according to sort parameters.
-     *
-     * This method shall be called by a public getPageByFilter method from child class that
-     * receives FilterParams and converts them into a filter function.
-     *
-     * @param correlationId     (optional) transaction id to trace execution through call chain.
-     * @param filter            (optional) a filter query string after WHERE clause
-     * @param paging            (optional) paging parameters
-     * @param sort              (optional) sorting string after ORDER BY clause
-     * @param select            (optional) projection string after SELECT clause
-     * @param callback          callback function that receives a data page or error.
-     */
-    getPageByFilter(correlationId, filter, paging, sort, select, callback) {
-        select = select && !_.isEmpty(select) ? select : "*";
-        let statement = "SELECT " + select + " FROM `" + this._bucketName + "`";
-        // Adjust max item count based on configuration
-        paging = paging || new pip_services3_commons_node_1.PagingParams();
-        let skip = paging.getSkip(-1);
-        let take = paging.getTake(this._maxPageSize);
-        let pagingEnabled = paging.total;
-        let collectionFilter = "_c='" + this._collectionName + "'";
-        if (filter && !_.isEmpty(filter))
-            filter = collectionFilter + " AND " + filter;
-        else
-            filter = collectionFilter;
-        statement += " WHERE " + filter;
-        if (sort && !_.isEmpty(sort))
-            statement += " ORDER BY " + sort;
-        if (skip >= 0)
-            statement += " OFFSET " + skip;
-        statement += " LIMIT " + take;
-        let query = this._query.fromString(statement);
-        // Todo: Make it configurable?
-        query.consistency(this._query.Consistency.STATEMENT_PLUS);
-        this._bucket.query(query, [], (err, items) => {
-            if (err) {
-                callback(err, null);
-                return;
-            }
-            if (items != null)
-                this._logger.trace(correlationId, "Retrieved %d from %s", items.length, this._bucketName);
-            items = _.map(items, item => select == "*" ? item[this._bucketName] : item);
-            items = _.map(items, this.convertToPublic);
-            items = _.filter(items, item => item != null);
-            if (pagingEnabled) {
-                statement = "SELECT COUNT(*) FROM `" + this._bucketName + "`";
-                if (filter && !_.isEmpty(filter))
-                    statement += " WHERE " + filter;
-                query = this._query.fromString(statement);
-                this._bucket.query(query, [], (err, counts) => {
-                    if (err) {
-                        callback(err, null);
-                        return;
-                    }
-                    let count = counts ? counts[0]['$1'] : 0;
-                    let page = new pip_services3_commons_node_2.DataPage(items, count);
-                    callback(null, page);
-                });
-            }
-            else {
-                let page = new pip_services3_commons_node_2.DataPage(items);
-                callback(null, page);
-            }
-        });
-    }
-    /**
-     * Gets a number of data items retrieved by a given filter.
-     *
-     * This method shall be called by a public getCountByFilter method from child class that
-     * receives FilterParams and converts them into a filter function.
-     *
-     * @param correlationId     (optional) transaction id to trace execution through call chain.
-     * @param filter            (optional) a filter query string after WHERE clause
-     * @param callback          callback function that receives a data page or error.
-     */
-    getCountByFilter(correlationId, filter, callback) {
-        let collectionFilter = "_c='" + this._collectionName + "'";
-        if (filter && !_.isEmpty(filter))
-            filter = collectionFilter + " AND " + filter;
-        else
-            filter = collectionFilter;
-        let statement = "SELECT COUNT(*) FROM `" + this._bucketName + "`";
-        if (filter && !_.isEmpty(filter))
-            statement += " WHERE " + filter;
-        let query = this._query.fromString(statement);
-        this._bucket.query(query, [], (err, counts) => {
-            if (err) {
-                callback(err, null);
-                return;
-            }
-            let count = counts ? counts[0]['$1'] : 0;
-            if (count != null)
-                this._logger.trace(correlationId, "Counted %d items in %s", count, this._bucketName);
-            callback(null, count);
-        });
-    }
-    /**
-     * Gets a list of data items retrieved by a given filter and sorted according to sort parameters.
-     *
-     * This method shall be called by a public getListByFilter method from child class that
-     * receives FilterParams and converts them into a filter function.
-     *
-     * @param correlationId    (optional) transaction id to trace execution through call chain.
-     * @param filter           (optional) a filter JSON object
-     * @param paging           (optional) paging parameters
-     * @param sort             (optional) sorting JSON object
-     * @param select           (optional) projection JSON object
-     * @param callback         callback function that receives a data list or error.
-     */
-    getListByFilter(correlationId, filter, sort, select, callback) {
-        select = select && !_.isEmpty(select) ? select : "*";
-        let statement = "SELECT " + select + " FROM `" + this._bucketName + "`";
-        // Adjust max item count based on configuration
-        if (filter && !_.isEmpty(filter))
-            statement += " WHERE " + filter;
-        if (sort && !_.isEmpty(sort))
-            statement += " ORDER BY " + sort;
-        let query = this._query.fromString(statement);
-        // Todo: Make it configurable?
-        query.consistency(this._query.Consistency.REQUEST_PLUS);
-        this._bucket.query(query, [], (err, items) => {
-            if (err) {
-                callback(err, null);
-                return;
-            }
-            if (items != null)
-                this._logger.trace(correlationId, "Retrieved %d from %s", items.length, this._bucketName);
-            items = _.map(items, item => select == "*" ? item[this._bucketName] : item);
-            items = _.map(items, this.convertToPublic);
-            items = _.filter(items, item => item != null);
-            callback(null, items);
-        });
     }
     /**
      * Gets a list of data items retrieved by given unique ids.
@@ -363,45 +217,6 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         });
     }
     /**
-     * Gets a random item from items that match to a given filter.
-     *
-     * This method shall be called by a public getOneRandom method from child class that
-     * receives FilterParams and converts them into a filter function.
-     *
-     * @param correlationId     (optional) transaction id to trace execution through call chain.
-     * @param filter            (optional) a filter JSON object
-     * @param callback          callback function that receives a random item or error.
-     */
-    getOneRandom(correlationId, filter, callback) {
-        let statement = "SELECT COUNT(*) FROM `" + this._bucketName + "`";
-        // Adjust max item count based on configuration
-        if (filter && !_.isEmpty(filter))
-            statement += " WHERE " + filter;
-        let query = this._query.fromString(statement);
-        // Todo: Make it configurable?
-        query.consistency(this._query.Consistency.REQUEST_PLUS);
-        this._bucket.query(query, [], (err, counts) => {
-            let count = counts != null ? counts[0] : 0;
-            if (err || count == 0) {
-                callback(err, null);
-                return;
-            }
-            let statement = "SELECT COUNT(*) FROM `" + this._bucketName + "`";
-            // Adjust max item count based on configuration
-            if (filter && !_.isEmpty(filter))
-                statement += " WHERE " + filter;
-            let skip = Math.trunc(Math.random() * count);
-            statement += " OFFSET " + skip + " LIMIT 1";
-            let query = this._query.fromString(statement);
-            this._bucket.query(query, [], (err, items) => {
-                if (items != null && items.length > 0)
-                    this._logger.trace(correlationId, "Retrieved random item from %s", this._bucketName);
-                items = _.map(items, this.convertToPublic);
-                callback(null, items[0]);
-            });
-        });
-    }
-    /**
      * Creates a data item.
      *
      * @param correlation_id    (optional) transaction id to trace execution through call chain.
@@ -415,16 +230,8 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         }
         // Assign unique id
         let newItem = _.clone(item);
-        newItem.id = item.id || pip_services3_commons_node_3.IdGenerator.nextLong();
-        let id = newItem.id.toString();
-        let objectId = this.generateBucketId(id);
-        newItem = this.convertFromPublic(newItem);
-        this._bucket.insert(objectId, newItem, (err, result) => {
-            if (!err)
-                this._logger.trace(correlationId, "Created in %s with id = %s", this._bucketName, id);
-            newItem = err == null ? this.convertToPublic(newItem) : null;
-            callback(err, newItem);
-        });
+        newItem.id = item.id || pip_services3_commons_node_1.IdGenerator.nextLong();
+        super.create(correlationId, newItem, callback);
     }
     /**
      * Sets a data item. If the data item exists it updates it,
@@ -442,7 +249,7 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
         }
         // Assign unique id
         let newItem = _.clone(item);
-        newItem.id = item.id || pip_services3_commons_node_3.IdGenerator.nextLong();
+        newItem.id = item.id || pip_services3_commons_node_1.IdGenerator.nextLong();
         let id = newItem.id.toString();
         let objectId = this.generateBucketId(id);
         newItem = this.convertFromPublic(newItem);
@@ -541,30 +348,6 @@ class IdentifiableCouchbasePersistence extends CouchbasePersistence_1.CouchbaseP
                     callback(err, oldItem);
                 }
             });
-        });
-    }
-    /**
-     * Deletes data items that match to a given filter.
-     *
-     * This method shall be called by a public deleteByFilter method from child class that
-     * receives FilterParams and converts them into a filter function.
-     *
-     * @param correlationId     (optional) transaction id to trace execution through call chain.
-     * @param filter            (optional) a filter JSON object.
-     * @param callback          (optional) callback function that receives error or null for success.
-     */
-    deleteByFilter(correlationId, filter, callback) {
-        let statement = "DELETE FROM `" + this._bucketName + "`";
-        // Adjust max item count based on configuration
-        if (filter && !_.isEmpty(filter))
-            statement += " WHERE " + filter;
-        let query = this._query.fromString(statement);
-        this._bucket.query(query, [], (err, counts) => {
-            if (!err) {
-                let count = counts != null ? counts[0] : 0;
-                this._logger.trace(correlationId, "Deleted %d items from %s", count, this._bucketName);
-            }
-            callback(err);
         });
     }
     /**

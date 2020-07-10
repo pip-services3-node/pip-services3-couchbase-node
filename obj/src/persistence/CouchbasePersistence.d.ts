@@ -7,6 +7,8 @@ import { ICleanable } from 'pip-services3-commons-node';
 import { ConfigParams } from 'pip-services3-commons-node';
 import { CompositeLogger } from 'pip-services3-components-node';
 import { DependencyResolver } from 'pip-services3-commons-node';
+import { PagingParams } from 'pip-services3-commons-node';
+import { DataPage } from 'pip-services3-commons-node';
 import { CouchbaseConnection } from './CouchbaseConnection';
 /**
  * Abstract persistence component that stores data in Couchbase
@@ -79,7 +81,9 @@ import { CouchbaseConnection } from './CouchbaseConnection';
  *         });
  *     });
  */
-export declare class CouchbasePersistence implements IReferenceable, IUnreferenceable, IConfigurable, IOpenable, ICleanable {
+export declare class CouchbasePersistence<T> implements IReferenceable, IUnreferenceable, IConfigurable, IOpenable, ICleanable {
+    protected _maxPageSize: number;
+    protected _collectionName: string;
     private static _defaultConfig;
     private _config;
     private _references;
@@ -121,8 +125,9 @@ export declare class CouchbasePersistence implements IReferenceable, IUnreferenc
      * Creates a new instance of the persistence component.
      *
      * @param bucket    (optional) a bucket name.
+     * @param collection    (optional) a collection name.
      */
-    constructor(bucket?: string);
+    constructor(bucket?: string, collection?: string);
     /**
      * Configures component by passing configuration parameters.
      *
@@ -181,4 +186,79 @@ export declare class CouchbasePersistence implements IReferenceable, IUnreferenc
      * @param callback 			callback function that receives error or null no errors occured.
      */
     clear(correlationId: string, callback?: (err: any) => void): void;
+    /**
+     * Gets a page of data items retrieved by a given filter and sorted according to sort parameters.
+     *
+     * This method shall be called by a public getPageByFilter method from child class that
+     * receives FilterParams and converts them into a filter function.
+     *
+     * @param correlationId     (optional) transaction id to trace execution through call chain.
+     * @param filter            (optional) a filter query string after WHERE clause
+     * @param paging            (optional) paging parameters
+     * @param sort              (optional) sorting string after ORDER BY clause
+     * @param select            (optional) projection string after SELECT clause
+     * @param callback          callback function that receives a data page or error.
+     */
+    protected getPageByFilter(correlationId: string, filter: any, paging: PagingParams, sort: any, select: any, callback: (err: any, items: DataPage<T>) => void): void;
+    /**
+     * Gets a number of data items retrieved by a given filter.
+     *
+     * This method shall be called by a public getCountByFilter method from child class that
+     * receives FilterParams and converts them into a filter function.
+     *
+     * @param correlationId     (optional) transaction id to trace execution through call chain.
+     * @param filter            (optional) a filter query string after WHERE clause
+     * @param callback          callback function that receives a data page or error.
+     */
+    protected getCountByFilter(correlationId: string, filter: any, callback: (err: any, count: number) => void): void;
+    /**
+     * Gets a list of data items retrieved by a given filter and sorted according to sort parameters.
+     *
+     * This method shall be called by a public getListByFilter method from child class that
+     * receives FilterParams and converts them into a filter function.
+     *
+     * @param correlationId    (optional) transaction id to trace execution through call chain.
+     * @param filter           (optional) a filter JSON object
+     * @param paging           (optional) paging parameters
+     * @param sort             (optional) sorting JSON object
+     * @param select           (optional) projection JSON object
+     * @param callback         callback function that receives a data list or error.
+     */
+    protected getListByFilter(correlationId: string, filter: any, sort: any, select: any, callback: (err: any, items: T[]) => void): void;
+    /**
+    * Gets a random item from items that match to a given filter.
+    *
+    * This method shall be called by a public getOneRandom method from child class that
+    * receives FilterParams and converts them into a filter function.
+    *
+    * @param correlationId     (optional) transaction id to trace execution through call chain.
+    * @param filter            (optional) a filter JSON object
+    * @param callback          callback function that receives a random item or error.
+    */
+    protected getOneRandom(correlationId: string, filter: any, callback: (err: any, item: T) => void): void;
+    /**
+    * Generates unique id for specific collection in the bucket
+    * @param value a public unique id.
+    * @returns a unique bucket id.
+    */
+    protected generateBucketId(value: any): string;
+    /**
+     * Creates a data item.
+     *
+     * @param correlation_id    (optional) transaction id to trace execution through call chain.
+     * @param item              an item to be created.
+     * @param callback          (optional) callback function that receives created item or error.
+     */
+    create(correlationId: string, item: T, callback?: (err: any, item: T) => void): void;
+    /**
+    * Deletes data items that match to a given filter.
+    *
+    * This method shall be called by a public deleteByFilter method from child class that
+    * receives FilterParams and converts them into a filter function.
+    *
+    * @param correlationId     (optional) transaction id to trace execution through call chain.
+    * @param filter            (optional) a filter JSON object.
+    * @param callback          (optional) callback function that receives error or null for success.
+    */
+    deleteByFilter(correlationId: string, filter: any, callback?: (err: any) => void): void;
 }

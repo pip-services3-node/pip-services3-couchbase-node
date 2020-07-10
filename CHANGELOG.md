@@ -1,5 +1,10 @@
 # Couchbase components for Pip.Services in Node.js Changelog
 
+## <a name="3.3.0"></a> 3.3.0 (2020-06-10) 
+
+### Features
+* Moved some CRUD operations from IdentifiableCouchbasePersistence to CouchbasePersistence
+
 ## <a name="3.2.0"></a> 3.2.0 (2020-05-18) 
 
 ### Features
