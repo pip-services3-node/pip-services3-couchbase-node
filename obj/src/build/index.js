@@ -5,5 +5,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * @preferred
  */
 var DefaultCouchbaseFactory_1 = require("./DefaultCouchbaseFactory");
-exports.DefaultCouchbaseFactory = DefaultCouchbaseFactory_1.DefaultCouchbaseFactory;
+Object.defineProperty(exports, "DefaultCouchbaseFactory", { enumerable: true, get: function () { return DefaultCouchbaseFactory_1.DefaultCouchbaseFactory; } });
 //# sourceMappingURL=index.js.map

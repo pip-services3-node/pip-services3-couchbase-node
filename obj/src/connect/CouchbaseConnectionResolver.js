@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CouchbaseConnectionResolver = void 0;
 /** @module connect */
 /** @hidden */
 let async = require('async');

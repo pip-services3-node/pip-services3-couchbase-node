@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.IdentifiableCouchbasePersistence = void 0;
 /** @module persistence */
 /** @hidden */
 let _ = require('lodash');
