@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CouchbaseConnectionResolver = exports.CouchbaseConnectionParams = void 0;
 /**
  * @module connect
  * @preferred

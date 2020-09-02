@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DefaultCouchbaseFactory = void 0;
 /**
  * @module build
  * @preferred
