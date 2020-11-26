@@ -33,7 +33,8 @@
         "delay_test": "sleep 60 && echo Continue... && mocha -t 30000 -R spec -u tdd --recursive ./obj/test",
         "test": "mocha -t 30000 -R spec -u tdd --recursive ./obj/test",
         "retest": "tsc && mocha -t 30000 -R spec -u tdd --recursive ./obj/test",
-        "docgen": "typedoc --out doc/api src --mode modules --excludeExternals --excludePrivate --target ES6 --ignoreCompilerErrors"
+        "docgen": "typedoc --out docs src --mode modules --excludeExternals --excludePrivate --target ES6 --ignoreCompilerErrors",
+        "docgen2": "typedoc --out docs src --mode file --excludeExternals --target ES6 --ignoreCompilerErrors --readme docs/ApiReference.md"
     },
     "dependencies": {
         "handlebars": "4.0.12",
