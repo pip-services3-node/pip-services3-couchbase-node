@@ -3,7 +3,7 @@
 This module is a part of the [Pip.Services](http://pipservices.org) polyglot microservices toolkit.
 The Couchbase module contains a set of components for the operation of the Couchbase database.
 
-This module contains the following packages:
+The module contains the following packages:
  
 - **Build** - Factory for constructing module components
 - **Connect** - components for creating and configuring a database connection
