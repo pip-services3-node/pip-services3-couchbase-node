@@ -5,22 +5,19 @@ $ErrorActionPreference = "Stop"
 
 # Get component data and set necessary variables
 $component = Get-Content -Path "component.json" | ConvertFrom-Json
+
+# Get buildnumber from github actions
+if ($env:GITHUB_RUN_NUMBER -ne $null) {
+    $component.build = $env:GITHUB_RUN_NUMBER
+    Set-Content -Path "component.json" -Value $($component | ConvertTo-Json)
+}
+
 $buildImage="$($component.registry)/$($component.name):$($component.version)-$($component.build)-build"
 $container=$component.name
 
 # Remove build files
 if (Test-Path "obj") {
     Remove-Item -Recurse -Force -Path "obj"
-}
-
-# Copy private keys to access git repo
-if (-not (Test-Path -Path "docker/id_rsa")) {
-    if ($env:GIT_PRIVATE_KEY -ne $null) {
-        $decodedGitPrivateKey = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($env:GIT_PRIVATE_KEY))
-        Set-Content -Path "docker/id_rsa" -Value $decodedGitPrivateKey
-    } else {
-        Copy-Item -Path "~/.ssh/id_rsa" -Destination "docker"
-    }
 }
 
 # Build docker image
