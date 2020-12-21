@@ -122,7 +122,7 @@ Configuration for your microservice that includes couchbase persistence may look
   connection:
     uri: {{{COUCHBASE_SERVICE_URI}}}
     host: {{{COUCHBASE_SERVICE_HOST}}}{{#unless COUCHBASE_SERVICE_HOST}}localhost{{/unless}}
-    port: {{COUCHBASE_SERVICE_PORT}}{{#unless COUCHBASE_SERVICE_PORT}}27017{{/unless}}
+    port: {{COUCHBASE_SERVICE_PORT}}{{#unless COUCHBASE_SERVICE_PORT}}8091{{/unless}}
     bucket: {{COUCHBASE_BUCKET}}{{#unless COUCHBASE_BUCKET}}app{{/unless}}
   credential:
     username: {{COUCHBASE_USER}}
