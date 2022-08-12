@@ -1,6 +1,14 @@
 {
-    "name": "pip-services3-couchbase-node",
-    "registry": "pipdevs",
+    "name":  "pip-services3-couchbase-node",
+    "type": "microservice",
+    "language": "node",
     "version": "3.3.0",
-    "build": 0
+    "build": 0,
+    "registry": "pipdevs",
+    "artifacts": [
+        {
+            "name":  "<name>",
+            "type": "npm"
+        }
+    ]
 }
